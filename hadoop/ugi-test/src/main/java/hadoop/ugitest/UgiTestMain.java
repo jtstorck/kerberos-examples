@@ -1,18 +1,9 @@
 package hadoop.ugitest;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.security.PrivilegedExceptionAction;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import org.apache.commons.cli.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -21,9 +12,12 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.security.PrivilegedExceptionAction;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class UgiTestMain {
 
@@ -37,7 +31,7 @@ public class UgiTestMain {
 
     private static final Option OPTION_KRB_CONF_FILE = Option.builder("k")
             .longOpt("krb-conf")
-            .desc("JAAS file containing Kerberos config")
+            .desc("Kerberos configuration path")
             .hasArg()
             .argName("filename")
             .numberOfArgs(1)
@@ -92,20 +86,21 @@ public class UgiTestMain {
             if (commandLine.hasOption(OPTION_MIGRATOR_HELP.getLongOpt())) {
                 printUsage(null, options, output);
             } else {
-                // set up jaas config
+                // set up krb config
                 final String kerberosConfig = commandLine.getOptionValue(OPTION_KRB_CONF_FILE.getOpt());
                 Preconditions.checkArgument(!Strings.isNullOrEmpty(kerberosConfig), "No kerberos configuration was provided");
-                System.setProperty("java.security.auth.login.config", kerberosConfig);
+                System.setProperty("java.security.krb5.conf", kerberosConfig);
 
                 // set up hadoop resources configuration
-                String[] hadoopResourcesOptionValues = commandLine.getOptionValues(OPTION_HADOOP_RESOURCES.getOpt());
                 Configuration configuration = new Configuration();
-                Lists.newArrayList(hadoopResourcesOptionValues).forEach(s -> configuration.addResource(new Path(s)));
                 configuration.set("hadoop.kerberos.min.seconds.before.relogin", "1");
                 // fix fs impl properties, since maven-assembly-plugin causes some of the META-INF/services files to get overwritten
                 // when files of the same name exist in multiple modules
                 configuration.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
                 configuration.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+                String[] hadoopResourcesOptionValues = commandLine.getOptionValues(OPTION_HADOOP_RESOURCES.getOpt());
+                Lists.newArrayList(hadoopResourcesOptionValues).forEach(s -> configuration.addResource(new Path(s)));
+
                 UserGroupInformation.setConfiguration(configuration);
 
                 LOGGER.info("Test using kerberos config [{}], hadoop config [{}]", kerberosConfig, configuration);
@@ -130,14 +125,15 @@ public class UgiTestMain {
                     UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
                     LOGGER.info("UGI acquired for principal [{}] from keytab [{}], UGI [{}]", principal, keytab, ugi);
                     LOGGER.info("Scheduling relogin for principal [{}] from keytab [{}], UGI [{}], relogin period [{} second(s)]", principal, keytab, ugi, reloginAttemptPeriod);
-                    scheduledExecutorService.schedule(new UgiRunnable(ugi, configuration, hdfsDir), reloginAttemptPeriod, TimeUnit.SECONDS);
+                    scheduledExecutorService.scheduleAtFixedRate(new UgiRunnable(ugi, configuration, hdfsDir), 0, reloginAttemptPeriod, TimeUnit.SECONDS);
                 }
             }
             while (!scheduledExecutorService.isTerminated()) {
                 if (!running) {
-                    LOGGER.info("shutting down threads");
+                    LOGGER.info("shutting down executor service threads");
                     scheduledExecutorService.shutdownNow();
                 }
+                LOGGER.trace("awaiting executor service termination");
                 scheduledExecutorService.awaitTermination(100, TimeUnit.MILLISECONDS);
             }
         } catch (ParseException e) {

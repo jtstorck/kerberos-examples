@@ -125,7 +125,7 @@ public class UgiTestMain {
                     UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
                     LOGGER.info("UGI acquired for principal [{}] from keytab [{}], UGI [{}]", principal, keytab, ugi);
                     LOGGER.info("Scheduling relogin for principal [{}] from keytab [{}], UGI [{}], relogin period [{} second(s)]", principal, keytab, ugi, reloginAttemptPeriod);
-                    scheduledExecutorService.scheduleAtFixedRate(new UgiRunnable(ugi, configuration, hdfsDir), 0, reloginAttemptPeriod, TimeUnit.SECONDS);
+                    scheduledExecutorService.scheduleAtFixedRate(new UgiRunnable(ugi, configuration, hdfsDir), 60, reloginAttemptPeriod, TimeUnit.SECONDS);
                 }
             }
             while (!scheduledExecutorService.isTerminated()) {

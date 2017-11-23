@@ -1,0 +1,10 @@
+[
+  {
+    "keytabPath": "principal.keytab",
+    "principal": "principal@EXAMPLE.COM",
+    "reloginPeriod": 60,
+    "taskPeriod": 60,
+    "initialTaskDelay": 0,
+    "destinationPath": "/user/principal"
+  }
+]

@@ -1,10 +1,10 @@
-#Hadoop (with Kerberos) UGI Usage Tests
+# Hadoop (with Kerberos) UGI Usage Tests
 This project was created to test hadoop-client's UserGroupInformation class under various use cases that differ from the standard scenario of a single service principal proxying user principals.  These tests have been performed using version 2.7.3 and 2.8.2 of hadoop-client.
-####[UGI Relogin with Unintentional Impersonation](#ugi-relogin-with-unintentional-impersonation)  
-####[TGT Expiration](#tgt-expiration)
-####Building from source
+#### [UGI Relogin with Unintentional Impersonation](#ugi-relogin-with-unintentional-impersonation-1)  
+#### [TGT Expiration](#tgt-expiration-1)
+#### Building from source
 ``mvn clean install``
-####Command line parameters and usage example
+#### Command line parameters and usage example
 ```
 -c,--task-config <file>                  Task configuration file (JSON)
 -h,--help                                display help/usage info
@@ -17,10 +17,10 @@ Example: ``java -jar ugi-test-<version>-jar-with-dependencies.jar
     -c tasks-config.json
     -r core-site.xml
     -r hdfs-site.xml``
-#UGI Relogin with Unintentional Impersonation
-####Description of the test
+# UGI Relogin with Unintentional Impersonation
+#### Description of the test
 Multiple principals that are logged in using UGI instances that are instantiated from a UGI class loaded by the same classloader will encounter problems when the second principal attempts to relogin.  An impersonation will occur and the operation attempted by the second principal after relogging in will fail.
-####Setup for the test
+#### Setup for the test
 1. Create two principals for the test
     * ``kadmin.local -q 'addprinc -randkey -maxlife "10 seconds" -maxrenewlife "10 minutes" ugitest1@EXAMPLE.COM'``
     * ``kadmin.local -q 'addprinc -randkey -maxlife "10 seconds" -maxrenewlife "10 minutes" ugitest2@EXAMPLE.COM'``
@@ -33,25 +33,25 @@ Multiple principals that are logged in using UGI instances that are instantiated
 6. Create a task config with the following json:
 ```json
 [{
-    "keytabPath": "/path/to/ugitest1.keytab",
-    "principal": "ugitest1@EXAMPLE.COM",
-    "reloginPeriod": 11,
-    "taskPeriod": 11,
-    "initialTaskDelay": 60,
-    "destinationPath": "/writable/hdfs/path"
-  },
-  {
-    "keytabPath": "/path/to/ugitest2.keytab",
-    "principal": "ugitest2@EXAMPLE.COM",
-    "reloginPeriod": 11,
-    "taskPeriod": 11,
-    "initialTaskDelay": 60,
-    "destinationPath": "/writable/hdfs/path"
-  }]
+  "keytabPath": "/path/to/ugitest1.keytab",
+  "principal": "ugitest1@EXAMPLE.COM",
+  "reloginPeriod": 11,
+  "taskPeriod": 11,
+  "initialTaskDelay": 60,
+  "destinationPath": "/writable/hdfs/path"
+},
+{
+  "keytabPath": "/path/to/ugitest2.keytab",
+  "principal": "ugitest2@EXAMPLE.COM",
+  "reloginPeriod": 11,
+  "taskPeriod": 11,
+  "initialTaskDelay": 60,
+  "destinationPath": "/writable/hdfs/path"
+}]
 ```
-#TGT Expiration
-If the keytab used to create an initial valid UGI instance is available to hadoop-client, UGI#reloginFromKeytab (which is called by UGI#checkTGTAndReloginFromKeytab) should be able to acquire a new TGT if the existing one has expired, but does not, given the following setup.  Please be aware that the maxlife (__10 minutes__) and task config settings are different from the [UGI Relogin with Unintentional Impersonation](#ugi-relogin-with-unintentional-impersonation) test and create an edge-case scenario to recreate the issue.
-#####Setup for the test
+# TGT Expiration
+If the keytab used to create an initial valid UGI instance is available to hadoop-client, UGI#reloginFromKeytab (which is called by UGI#checkTGTAndReloginFromKeytab) should be able to acquire a new TGT if the existing one has expired, but does not, given the following setup.  Please be aware that the maxlife (__10 minutes__) and task config settings are different from the [UGI Relogin with Unintentional Impersonation](#ugi-relogin-with-unintentional-impersonation-1) test and create an edge-case scenario to recreate the issue.
+##### Setup for the test
 1. Create a principal for the test
     * ``kadmin.local -q 'addprinc -randkey -maxlife "10 minutes" -maxrenewlife "10 minutes" ugitest3@EXAMPLE.COM'``
 2. Export the principal to a keytab
@@ -62,11 +62,11 @@ If the keytab used to create an initial valid UGI instance is available to hadoo
 6. Create a task config with the following json:
 ```json
 [{
-    "keytabPath": "/path/to/ugitest3.keytab",
-    "principal": "ugitest3@HDF.COM",
-    "reloginPeriod": 241,
-    "taskPeriod": 120,
-    "initialTaskDelay": 0,
-    "destinationPath": "/writable/hdfs/path"
-  }]
+  "keytabPath": "/path/to/ugitest3.keytab",
+  "principal": "ugitest3@HDF.COM",
+  "reloginPeriod": 241,
+  "taskPeriod": 120,
+  "initialTaskDelay": 0,
+  "destinationPath": "/writable/hdfs/path"
+}]
 ```

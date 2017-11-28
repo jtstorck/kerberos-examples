@@ -1,0 +1,3 @@
+[submodule "hadoop/ugi-test"]
+	path = hadoop/ugi-test
+	url = https://github.com/jtstorck/ugi-test.git
